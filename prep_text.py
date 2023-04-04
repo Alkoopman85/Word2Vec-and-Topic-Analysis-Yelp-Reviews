@@ -87,22 +87,22 @@ def include(token) -> bool:
         token: spacy token as returned by nlp=spacy.load(); nlp(text)[0]
 
     Returns:
-        bool: True if token is not punctuation, space or number else False
+        bool: True if token is not punctuation or space else False
     """
     return not token.is_punct and not token.is_space and not token.is_digit
 
 def get_reviews_generator(review_txt_file:str|Path) -> Generator[str, None, None]:
-    """read in a text file and return a lowercase string
+    """read in a text file and return a string
 
     Args:
         review_txt_file (str | Path): path to text file
 
     Yields:
-        Generator[str, None, None]: lowercase string
+        Generator[str, None, None]: text string
     """
     with open(review_txt_file, 'r', encoding='utf-8') as reviews_file:
         for review in reviews_file:
-            yield review.replace('\\n', '\n').lower()
+            yield review.replace('\\n', '\n')
 
 
 def write_unigram_sentences_and_reviews(text_infile:str|Path, sentence_outfile:str|Path, unigram_review_outfile:str|Path, 
