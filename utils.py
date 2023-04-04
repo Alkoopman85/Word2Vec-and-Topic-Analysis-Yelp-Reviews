@@ -1,6 +1,7 @@
 import yaml
 import numpy as np
 from pathlib import Path
+import json
 
 
 def load_config(config_path:str|Path)-> dict:
@@ -102,3 +103,12 @@ def jaccard_distance(set_A:list|set, set_B:list|set) -> float:
     return j_distance
 
 
+def save_as_json(dict_to_save:dict, save_path:str|Path) -> None:
+    """save a dictionary as a json file
+
+    Args:
+        dict_to_save (dict): dictionary to save
+        save_path (str | Path): Path to save file
+    """
+    with open(save_path, 'w') as file:
+        json.dump(dict_to_save, file)
