@@ -34,7 +34,7 @@ def average_jaccard_distance(lda_model:LdaMulticore|LdaModel, topn:int=20) -> fl
 
 
 def train_lda_model_get_top_topics(train_docs_bow:MmCorpus, text:LineSentence, data_dict:Dictionary, 
-                                   num_topics:int, passes:int, iterations:int, eval_every:int|None=None) -> tuple:
+                                   num_topics:int, passes:int, iterations:int, eval_every:int|None) -> tuple:
     """trains an lda model and extracts the four supported coherence measures from CoherenceModel
 
     Args:
@@ -44,7 +44,7 @@ def train_lda_model_get_top_topics(train_docs_bow:MmCorpus, text:LineSentence, d
         num_topics (int): number of topics
         passes (int): number of passes over corpus
         iterations (int): iterations over the doc chunks
-        eval_every (int | None, optional): estimate log perplexity after this many steps. Defaults to None.
+        eval_every (int | None): estimate log perplexity after this many steps.
 
     Returns:
         tuple[LdaMulticore, tuple[float]]: the lda model and the coherence scores for the given number of topics
@@ -75,7 +75,7 @@ def train_lda_model_get_top_topics(train_docs_bow:MmCorpus, text:LineSentence, d
 
 
 def tune_topic_num(train_text_path:str|Path, train_docs_bow_path:str|Path, test_docs_bow_path:str|Path, data_dict_path:str|Path, 
-                   topic_range_min:int, topic_range_max:int, topn_for_jaccard:int) -> dict:
+                   topic_range_min:int, topic_range_max:int, topn_for_jaccard:int, passes:int, iterations:int, eval_every:int|None=None) -> dict:
     """iterates over a range for the number of topics to test. fit an lda model and extract the coherence scores for each fit.
 
     Args:
@@ -86,6 +86,9 @@ def tune_topic_num(train_text_path:str|Path, train_docs_bow_path:str|Path, test_
         topic_range_min (int): minimum number of topic in search range inclusive
         topic_range_max (int): maximum number of topics in search range inclusive
         topn_for_jaccard (int): the nubmer of words to include per topic for calculating the average jaccard similarity
+        passes (int): number of passes over corpus
+        iterations (int): iterations over the doc chunks
+        eval_every (int | None, optional): estimate log perplexity after this many steps. Defaults to None.
 
     Returns:
         dict: coherence scores dictionary per topic range
@@ -106,8 +109,16 @@ def tune_topic_num(train_text_path:str|Path, train_docs_bow_path:str|Path, test_
     
     for num_topics in tqdm(topic_range):
 
-        lda_model, scores = train_lda_model_get_top_topics(train_docs_bow, train_line_sentence, trigram_dict, num_topics)
+        lda_model, scores = train_lda_model_get_top_topics(train_docs_bow=train_docs_bow,
+                                                           text=train_line_sentence, 
+                                                           data_dict=trigram_dict, 
+                                                           num_topics=num_topics,
+                                                           passes=passes,
+                                                           iterations=iterations,
+                                                           eval_every=eval_every)
+        # calculate log perplexity from the test corpus
         perplexity = lda_model.log_perplexity(test_docs_bow)
+        # calculate the average jaccard distance
         jaccard_dist = average_jaccard_distance(lda_model, topn_for_jaccard)
 
         u_mass_list.append(scores[0])
@@ -162,55 +173,59 @@ if __name__ == '__main__':
     start = datetime.now()
     print('Splitting file...')
     # sample from text corpus and split into train, test files
-    random_split_datafile(trigram_reviews_path, 
-                          lda_train_data_path, 
-                          lda_test_data_path, 
-                          config['lda_tune']['sample_size'], 
-                          config['lda_tune']['test_ratio'])
+    random_split_datafile(input_file=trigram_reviews_path, 
+                          train_file=lda_train_data_path, 
+                          validation_file=lda_test_data_path, 
+                          sample_size=config['lda_tune']['sample_size'], 
+                          test_ratio=config['lda_tune']['test_ratio'])
     
     print('Duration: ', str(datetime.now() - start))
 
     start = datetime.now()
     print('\nConstructing data dict...')
     # construct data dictionary from train data file
-    construct_data_dict(str(lda_train_data_path), 
-                        str(lda_dictionary_path), 
-                        config['lda']['filter']['no_below'], 
-                        config['lda']['filter']['no_above'])
+    construct_data_dict(prepped_data=lda_train_data_path, 
+                        dict_save_path=lda_dictionary_path, 
+                        filter_no_below=config['lda']['filter']['no_below'], 
+                        filter_no_above=config['lda']['filter']['no_above'])
     
     print('Duration: ', str(datetime.now() - start))
 
     start = datetime.now()
     print('\nBuilding train Mmcorpus...')
     # build train corpus
-    build_mm_corpus(str(train_mmcorp_path), 
-                    str(lda_train_data_path), 
-                    str(lda_dictionary_path))
+    build_mm_corpus(trigram_docs_bow_path=train_mmcorp_path, 
+                    trigram_revs_path=lda_train_data_path, 
+                    data_dict_path=lda_dictionary_path)
     
     print('Duration: ', str(datetime.now() - start))
 
     start = datetime.now()
     print('\nBuilding test Mmcorpus...')
     # build test corpus
-    build_mm_corpus(str(test_mmcorp_path), 
-                    str(lda_test_data_path), 
-                    str(lda_dictionary_path))
+    build_mm_corpus(trigram_docs_bow_path=test_mmcorp_path, 
+                    trigram_revs_path=lda_test_data_path, 
+                    data_dict_path=lda_dictionary_path)
     
     print('Duration: ', str(datetime.now() - start))
 
     start = datetime.now()
     print('\nGetting optimal number of topics...')
     # search over topic range and get results dictionary
-    results_dict = tune_topic_num(lda_train_data_path,
-                                  train_mmcorp_path, 
-                                  test_mmcorp_path, 
-                                  lda_dictionary_path, 
-                                  config['lda_tune']['min_topic'], 
-                                  config['lda_tune']['max_topic'],
-                                  config['lda_tune']['topn_for_jaccard'])
+    results_dict = tune_topic_num(train_text_path=lda_train_data_path,
+                                  train_docs_bow_path=train_mmcorp_path, 
+                                  test_docs_bow_path=test_mmcorp_path, 
+                                  data_dict_path=lda_dictionary_path, 
+                                  topic_range_min=config['lda_tune']['min_topic'], 
+                                  topic_range_max=config['lda_tune']['max_topic'],
+                                  topn_for_jaccard=config['lda_tune']['topn_for_jaccard'],
+                                  passes=config['lda']['passes'],
+                                  iterations=config['lda']['iterations'],
+                                  eval_every=config['lda']['eval_every'])
     
     print('Duration: ', str(datetime.now() - start))
 
     print('\nSaving results...')
     # save results file
-    save_as_json(results_dict, test_results_path)
+    save_as_json(dict_to_save=results_dict, 
+                 save_path=test_results_path)
