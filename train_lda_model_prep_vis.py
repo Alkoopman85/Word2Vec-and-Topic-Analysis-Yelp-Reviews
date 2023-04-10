@@ -32,7 +32,7 @@ def construct_data_dict(prepped_data:str|Path, dict_save_path:str|Path,
 
 
 
-def doc_bow_generator(trigram_revs:str|Path, data_dict_path:str|Path) -> Generator[List[tuple(int, int)], None, None]:
+def doc_bow_generator(trigram_revs:str|Path, data_dict_path:str|Path) -> Generator[List, None, None]:
     """reads in text corpus and yields a doc2bow representation of each document
 
     Args:
@@ -40,7 +40,7 @@ def doc_bow_generator(trigram_revs:str|Path, data_dict_path:str|Path) -> Generat
         data_dict_path (str | Path): path to built dictionary
 
     Yields:
-        Generator[List[tuple(int, int)], None, None]: document in doc2bow format
+        Generator[List[Tuple(int, int)], None, None]: document in doc2bow format
     """
     data_dict = Dictionary.load(str(data_dict_path), mmap='r')
     docs = LineSentence(trigram_revs)
@@ -71,7 +71,7 @@ def build_lda_model(trigram_docs_bow_path:str|Path, data_dict_path:str|Path, lda
         iterations (int): iterations over the doc chunks
         eval_every (int | None, optional): estimate log perplexity after this many steps. Defaults to None.
     """
-    trigram_docs_bow = MmCorpus(trigram_docs_bow_path)
+    trigram_docs_bow = MmCorpus(str(trigram_docs_bow_path))
     trigram_dict = Dictionary.load(str(data_dict_path), mmap='r')
 
     lda_model = LdaMulticore(corpus=trigram_docs_bow,
@@ -93,7 +93,7 @@ def prep_ldavis(model_path:str|Path, corpus_path:str|Path, trigram_dict_path:str
         trigram_dict_path (str | Path): Path to dictionary
         prepped_save_path (str | Path): save path for visualization
     """
-    trigram_docs_bow = MmCorpus(corpus_path)
+    trigram_docs_bow = MmCorpus(str(corpus_path))
     trigram_dict = Dictionary.load(str(trigram_dict_path), mmap='r')
     lda_model = LdaMulticore.load(str(model_path), mmap='r')
 
@@ -139,36 +139,36 @@ if __name__ == '__main__':
     start = datetime.now()
     print('Building Data Dictionary...')
     # create and save the data dictionary
-    construct_data_dict(trigram_reviews, 
-                        trigram_dict,
-                        config['lda']['filter']['no_below'],
-                        config['lda']['filter']['no_above'])
+    construct_data_dict(prepped_data=trigram_reviews, 
+                        dict_save_path=trigram_dict,
+                        filter_no_below=config['lda']['filter']['no_below'],
+                        filter_no_above=config['lda']['filter']['no_above'])
     print('Duration: ', str(datetime.now() - start))
 
     start = datetime.now()
     print('\nBuilding Matrix Market Corpus...')
     # create and save Mmcorpus
-    build_mm_corpus(mm_corpus, 
-                    trigram_reviews,
-                    trigram_dict)
+    build_mm_corpus(trigram_docs_bow_path=mm_corpus, 
+                    trigram_revs_path=trigram_reviews,
+                    data_dict_path=trigram_dict)
     print('Duration: ', str(datetime.now() - start))
 
     start = datetime.now()
     print('\nTraining LDA Model...')
     # train lda model
-    build_lda_model(mm_corpus,
-                    trigram_dict,
-                    lda_model_path,
-                    config['lda']['num_topics'],
-                    config['lda']['passes'],
-                    config['lda']['iterations'])
+    build_lda_model(trigram_docs_bow_path=mm_corpus,
+                    data_dict_path=trigram_dict,
+                    lda_model_save_path=lda_model_path,
+                    num_topics=config['lda']['num_topics'],
+                    passes=config['lda']['passes'],
+                    iterations=config['lda']['iterations'])
     print('Duration: ', str(datetime.now() - start))
 
     start = datetime.now()
     print('\nPrepping LDA Visualization...')
     # create lda visualization
-    prep_ldavis(lda_model_path,
-                mm_corpus,
-                trigram_dict,
-                lda_vis_path)
+    prep_ldavis(model_path=lda_model_path,
+                corpus_path=mm_corpus,
+                trigram_dict_path=trigram_dict,
+                prepped_save_path=lda_vis_path)
     print('Duration: ', str(datetime.now() - start))

@@ -209,7 +209,6 @@ if __name__ == '__main__':
     
     print('Duration: ', str(datetime.now() - start))
 
-    start = datetime.now()
     print('\nGetting optimal number of topics...')
     # search over topic range and get results dictionary
     results_dict = tune_topic_num(train_text_path=lda_train_data_path,
@@ -220,10 +219,7 @@ if __name__ == '__main__':
                                   topic_range_max=config['lda_tune']['max_topic'],
                                   topn_for_jaccard=config['lda_tune']['topn_for_jaccard'],
                                   passes=config['lda']['passes'],
-                                  iterations=config['lda']['iterations'],
-                                  eval_every=config['lda']['eval_every'])
-    
-    print('Duration: ', str(datetime.now() - start))
+                                  iterations=config['lda']['iterations'])
 
     print('\nSaving results...')
     # save results file
