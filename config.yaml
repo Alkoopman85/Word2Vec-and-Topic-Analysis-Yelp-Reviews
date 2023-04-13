@@ -1,0 +1,65 @@
+paths:
+  yelp_reviews_dataset_path:
+    data/yelp_academic_dataset_review.json
+  business_ids:
+    data/business_ids.txt
+  base_data_folder:
+    data
+
+data_prep:
+  spacy_model_string:
+    en_core_web_sm
+  batch_size:
+    1000
+  n_process:
+    2
+  remove_stop:
+    True
+
+lda_tune:
+  sample_size:
+    100000
+  test_ratio:
+    .05
+  min_topic:
+    10
+  max_topic:
+    60
+  topn_for_jaccard:
+    100
+
+lda:
+  filter:
+    no_below:
+      10
+    no_above:
+      .3
+  num_topics:
+    30
+  passes:
+    10
+  iterations:
+    200
+
+
+word_2_vec:
+  base_prefix:
+    yelp2vec
+  epochs:
+    50
+  vector_size:
+    200
+  keep_newest:
+    5
+  sg:
+    1
+  hs:
+    0
+  workers:
+    2
+  window:
+    7
+  min_count:
+    20
+  keyed_vectors_only:
+    False
