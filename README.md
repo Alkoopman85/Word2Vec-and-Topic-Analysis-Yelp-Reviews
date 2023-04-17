@@ -4,7 +4,7 @@ Explores The yelp dataset with an LDA topic analysis and a Word2Vec model using 
 ## Data:
 This analysis is based on the [yelp dataset](https://www.yelp.com/dataset). More specifically the `yelp_academic_dataset_reviews.json` file. These reviews were filtered by category, this can be seen in `extract_business_ids_from_database.ipynb` (see Important Note below) where we create a text file that contains business ids linked to reviews to include in the analysis.
 
-<b>Important Note:</b> The business ids file created in `extract_business_ids_from_database.ipynb` must be run in the folder for [Yelp_sqlite_database](https://github.com/Alkoopman85/Yelp_sqlite_database). This project can be run without filtering with a small change to `config.yaml` file, more on this below.
+<b>Important Note:</b> The business ids file created using `extract_business_ids_from_database.ipynb` must be run in the folder for [Yelp_sqlite_database](https://github.com/Alkoopman85/Yelp_sqlite_database). This project can be run without filtering with a small change to `config.yaml` file, more on this below.
 
 ## Setup:
 Adjust the `config.yaml` file as needed. In the paths section set the base_data folder and set the paths to `yelp_academic_dataset_reviews.json` file and if applicable the path to the `business_idx.txt` file. If no filtering is desired then leave that entry blank.
